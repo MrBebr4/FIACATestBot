@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{# Определяем заголовок в зависимости от того, добавляем мы или редактируем #}
+{% block title %}{{ title }} - {{ super() }}{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;">
+        {# Форма добавления/редактирования #}
+        <form method="POST" novalidate>
+            {{ form.hidden_tag() }} {# CSRF токен #}
+
+            {# Функция для отображения поля формы с ошибками #}
+            {% macro render_field(field) %}
+                <div style="margin-bottom: 15px;">
+                    {{ field.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}<br>
+                    {# Устанавливаем ширину для текстовых полей и textarea #}
+                    {% if field.type == 'StringField' or field.type == 'TextAreaField' %}
+                        {{ field(style="width: 95%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;") }}
+                    {% else %}
+                         {{ field(style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;") }}
+                    {% endif %}
+                    <br>
+                    {% for error in field.errors %}
+                        <span style="color: red; font-size: 0.9em;">[{{ error }}]</span>
+                    {% endfor %}
+                </div>
+            {% endmacro %}
+
+            {# Отображаем поля формы с помощью макроса #}
+            {{ render_field(form.full_name) }}
+            {{ render_field(form.short_name) }}
+            {{ render_field(form.ogrn) }}
+            {{ render_field(form.inn) }}
+            {{ render_field(form.address) }}
+            {{ render_field(form.region) }}
+            {{ render_field(form.parent) }}
+
+            <div>
+                {{ form.submit(style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;") }}
+                <a href="{{ url_for('main.show_registry') }}" style="margin-left: 15px; color: #6c757d; text-decoration: none;">Отмена</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

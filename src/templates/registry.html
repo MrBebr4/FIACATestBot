@@ -1,0 +1,194 @@
+{# Наследуем базовый шаблон #}
+{% extends "base.html" %}
+
+{# Определяем заголовок страницы #}
+{% block title %}Просмотр реестра - {{ super() }}{% endblock %}
+
+{# Определяем заголовок H1 #}
+{% block header %}Реестр образовательных организаций{% endblock %}
+
+{# Основное содержимое страницы #}
+{% block content %}
+
+    {# Кнопка добавления организации (видна только авторизованным) #}
+    {% if current_user.is_authenticated %}
+    <div style="margin-bottom: 15px;">
+        {# TODO: Добавить проверку прав доступа, если нужно #}
+        <a href="{{ url_for('main.add_organization') }}" style="padding: 8px 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">+ Добавить организацию</a>
+    </div>
+    {% endif %}
+
+    {# Форма фильтрации #}
+    <div class="filters">
+        <h2>Фильтры</h2>
+        {# Используем метод GET, чтобы параметры фильтрации отражались в URL #}
+        {# action указывает на текущий маршрут #}
+        <form method="GET" action="{{ url_for('.show_registry') }}">
+             {# Скрытые поля для сохранения текущей сортировки при применении фильтров #}
+             <input type="hidden" name="sort_by" value="{{ sort_by }}">
+             <input type="hidden" name="sort_order" value="{{ sort_order }}">
+             {# Поле page не нужно передавать, фильтрация должна начинаться с первой страницы #}
+
+            {# Выводим поля формы #}
+            <div>
+                {{ filter_form.region.label }}
+                {# Передаем текущее значение фильтра в форму, чтобы оно оставалось выбранным #}
+                {{ filter_form.region(value=request.args.get('region', '0')) }}
+            </div>
+            <div>
+                {{ filter_form.specialty_group.label }}
+                {{ filter_form.specialty_group(value=request.args.get('specialty_group', '0')) }}
+            </div>
+            <div>
+                {{ filter_form.specialty.label }}
+                 {{ filter_form.specialty(value=request.args.get('specialty', '0')) }}
+             </div>
+             {# Фильтр по форме обучения удален #}
+             {# <div>
+                 {{ filter_form.study_form.label }}
+                 {{ filter_form.study_form(value=request.args.get('study_form', '0')) }}
+             </div> #}
+             <div>
+                {# Кнопка отправки формы #}
+                {{ filter_form.submit() }}
+                {# Ссылка для сброса фильтров (переход на URL без параметров фильтрации) #}
+                <a href="{{ url_for('.show_registry', sort_by=sort_by, sort_order=sort_order) }}" style="margin-left: 15px;">Сбросить фильтры</a>
+            </div>
+        </form>
+    </div>
+
+    {# Таблица с организациями #}
+    <table>
+        <thead>
+            <tr>
+                {# Заголовки таблицы со ссылками для сортировки #}
+                {# Функция sort_url генерирует URL для сортировки по этому столбцу #}
+                {% macro sort_url(field, display_name) %}
+                    {% set new_order = 'desc' if sort_by == field and sort_order == 'asc' else 'asc' %}
+                    {# Сохраняем текущие параметры фильтрации при переключении сортировки #}
+                    {# request.args содержит все GET-параметры, включая фильтры #}
+                    <a href="{{ url_for('.show_registry', page=pagination.page, sort_by=field, sort_order=new_order, **request.args.to_dict()) }}">
+                        {{ display_name }}
+                        {# Показываем стрелку текущей сортировки #}
+                        {% if sort_by == field %}
+                            {% if sort_order == 'asc' %}▲{% else %}▼{% endif %}
+                        {% endif %}
+                    </a>
+                {% endmacro %}
+
+                <th>{{ sort_url('name', 'Наименование') }}</th>
+                <th>{{ sort_url('ogrn', 'ОГРН') }}</th>
+                <th>{{ sort_url('inn', 'ИНН') }}</th>
+                <th>{{ sort_url('region', 'Регион') }}</th>
+                <th>Адрес</th>
+                <th>Филиал?</th>
+                <th>Аккредитованные программы</th>
+                {# Добавляем столбец для действий (редактировать/удалить) #}
+                {% if current_user.is_authenticated %}
+                    {# TODO: Добавить проверку прав доступа, если нужно #}
+                    <th style="width: 120px;">Действия</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {# Цикл по организациям на текущей странице #}
+            {% for org in organizations %}
+            <tr>
+                <td>
+                    {{ org.full_name }}
+                    {% if org.short_name %}<br><small>({{ org.short_name }})</small>{% endif %}
+                </td>
+                <td>{{ org.ogrn }}</td>
+                <td>{{ org.inn }}</td>
+                <td>{{ org.region.name if org.region else 'Не указан' }}</td>
+                <td>{{ org.address }}</td>
+                <td>
+                    {% if org.is_branch() %}
+                        Да (Головная: {{ org.parent.short_name or org.parent.full_name if org.parent else 'Не найдена' }})
+                    {% else %}
+                        Нет
+                    {% endif %}
+                </td>
+                <td class="details">
+                    {# Выводим список программ для данной организации #}
+                    {% if org.programs %}
+                    <ul>
+                        {% for program in org.programs %}
+                        <li>
+                             <strong>{{ program.specialty.code }}</strong> - {{ program.specialty.name }}
+                             <em>({{ program.specialty.group.name }})</em>
+                             {# Отображение форм обучения удалено #}
+                             {# <br>
+                             <small>Формы: {{ program.study_forms | map(attribute='name') | join(', ') }}</small> #}
+                         </li>
+                         {% endfor %}
+                    </ul>
+                    {% else %}
+                    Нет данных
+                    {% endif %}
+                </td>
+                {# Ячейка с кнопками действий (видна только авторизованным) #}
+                {% if current_user.is_authenticated %}
+                    {# TODO: Добавить проверку прав доступа, если нужно #}
+                    <td style="white-space: nowrap;">
+                        {# Ссылка на редактирование #}
+                        <a href="{{ url_for('main.edit_organization', org_id=org.id) }}" style="color: #007bff; text-decoration: none; margin-right: 10px;">Ред.</a>
+                        {# Форма для удаления (используем POST для безопасности) #}
+                        <form action="{{ url_for('main.delete_organization', org_id=org.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту организацию?');">
+                            {# CSRF токен (если настроен в Flask) #}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            <button type="submit" style="color: #dc3545; background: none; border: none; padding: 0; font: inherit; cursor: pointer; text-decoration: underline;">Удал.</button>
+                        </form>
+                    </td>
+                {% endif %}
+            </tr>
+            {# Если организаций нет #}
+            {% else %}
+            {# Адаптируем colspan в зависимости от того, авторизован ли пользователь #}
+            <tr >
+                <td colspan="{{ 8 if current_user.is_authenticated else 7 }}">Организации не найдены.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# Пагинация #}
+    {% if pagination %}
+    <div class="pagination">
+        {# Ссылка на первую страницу #}
+        {% if pagination.has_prev %}
+            {# Сохраняем фильтры и сортировку при переходе по страницам #}
+            <a href="{{ url_for('.show_registry', page=1, sort_by=sort_by, sort_order=sort_order, **request.args.to_dict()) }}">&laquo;&laquo;</a>
+            <a href="{{ url_for('.show_registry', page=pagination.prev_num, sort_by=sort_by, sort_order=sort_order, **request.args.to_dict()) }}">&laquo;</a>
+        {% else %}
+            <span class="disabled">&laquo;&laquo;</span>
+            <span class="disabled">&laquo;</span>
+        {% endif %}
+
+        {# Номера страниц вокруг текущей #}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                {% if p == pagination.page %}
+                    <span class="current">{{ p }}</span>
+                {% else %}
+                    <a href="{{ url_for('.show_registry', page=p, sort_by=sort_by, sort_order=sort_order, **request.args.to_dict()) }}">{{ p }}</a>
+                {% endif %}
+            {% else %}
+                <span class="disabled">…</span> {# Разделитель для пропущенных страниц #}
+            {% endif %}
+        {% endfor %}
+
+        {# Ссылка на следующую страницу #}
+        {% if pagination.has_next %}
+            <a href="{{ url_for('.show_registry', page=pagination.next_num, sort_by=sort_by, sort_order=sort_order, **request.args.to_dict()) }}">&raquo;</a>
+            <a href="{{ url_for('.show_registry', page=pagination.pages, sort_by=sort_by, sort_order=sort_order, **request.args.to_dict()) }}">&raquo;&raquo;</a>
+        {% else %}
+            <span class="disabled">&raquo;</span>
+            <span class="disabled">&raquo;&raquo;</span>
+        {% endif %}
+        <br>
+        <small>Страница {{ pagination.page }} из {{ pagination.pages }}. Всего записей: {{ pagination.total }}</small>
+    </div>
+    {% endif %}
+
+{% endblock %}

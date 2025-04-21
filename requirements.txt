@@ -1,0 +1,19 @@
+# Core utilities
+requests  # For fetching data from URLs
+lxml  # For parsing XML efficiently
+python-dotenv  # For managing environment variables (like API keys, DB credentials)
+
+# Database (using SQLite)
+SQLAlchemy  # Object-Relational Mapper (ORM)
+# psycopg2-binary # PostgreSQL adapter for Python (Removed as we are using SQLite)
+Flask-SQLAlchemy # Integrates SQLAlchemy with Flask
+Flask-Migrate # For handling database schema changes
+
+# Web Framework (assuming Flask)
+Flask  # Micro web framework
+Flask-WTF # For handling web forms (filters, CRUD)
+email_validator # Required by Flask-WTF for email validation (might be needed for user registration)
+
+# User Authentication & Security
+Flask-Login # Manages user sessions (login, logout)
+Werkzeug # Provides utilities, including password hashing

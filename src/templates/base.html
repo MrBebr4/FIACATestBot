@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Используем блок title, чтобы дочерние шаблоны могли задавать свой заголовок -->
+    <title>{% block title %}Реестр ВУЗов России{% endblock %}</title>
+    <!-- Можно добавить сюда ссылки на CSS фреймворки (Bootstrap, Tailwind) или свои стили -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> -->
+    <style>
+        /* Простые стили для демонстрации */
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        nav { margin-bottom: 20px; background-color: #f0f0f0; padding: 10px; border-radius: 5px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #333; font-weight: bold; }
+        nav a:hover { color: #007bff; }
+        h1, h2 { color: #333; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; vertical-align: top; }
+        th { background-color: #e9ecef; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #f1f1f1; }
+        .pagination { margin-top: 20px; text-align: center; }
+        .pagination a, .pagination span { margin: 0 5px; padding: 8px 12px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px; }
+        .pagination a:hover { background-color: #eee; }
+        .pagination .current { font-weight: bold; background-color: #007bff; color: white; border-color: #007bff; }
+        .pagination .disabled { color: #ccc; border-color: #eee; }
+        .filters { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; border-radius: 5px; }
+        .filters form > div { margin-bottom: 10px; } /* Отступы между элементами формы */
+        .filters label { margin-right: 10px; font-weight: bold; display: inline-block; min-width: 120px; }
+        .filters select, .filters input[type=submit] { padding: 8px 10px; margin-right: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        .filters input[type=submit] { background-color: #007bff; color: white; cursor: pointer; border: none; }
+        .filters input[type=submit]:hover { background-color: #0056b3; }
+        .flash-messages { list-style: none; padding: 0; margin-bottom: 15px; }
+        .flash-messages li { padding: 10px 15px; margin-bottom: 10px; border-radius: 4px; }
+        .flash-messages .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-messages .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-messages .info { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+        .details ul { list-style: none; padding-left: 0; } /* Стили для списков в ячейках */
+        .details li { margin-bottom: 3px; }
+    </style>
+    <!-- Блок для дополнительных стилей из дочерних шаблонов -->
+    {% block head_styles %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <!-- Навигационное меню -->
+        <a href="{{ url_for('main.index') }}">Главная</a>
+        <a href="{{ url_for('main.show_registry') }}">Реестр</a>
+        <!-- Ссылки для входа/выхода/регистрации будут добавлены позже -->
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}">Выход ({{ current_user.username }})</a>
+            <!-- Ссылка на админку, если есть права -->
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">Вход</a>
+            <a href="{{ url_for('auth.register') }}">Регистрация</a>
+        {% endif %}
+    </nav>
+
+    <header>
+        <h1>{% block header %}Реестр аккредитованных образовательных организаций{% endblock %}</h1>
+    </header>
+
+    <main>
+        <!-- Блок для отображения flash-сообщений (уведомлений) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Основное содержимое страницы будет вставлено сюда -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <hr>
+        <p>&copy; {{ current_year }} Университетский проект</p> {# Используем переменную current_year #}
+    </footer>
+
+    <!-- Блок для скриптов JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>
